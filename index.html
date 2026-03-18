@@ -2098,28 +2098,26 @@
             
                 overlay[0].addEventListener('touchmove', function (e) {
                     e.preventDefault();
-            
+                
                     if (e.touches.length === 2 && pinching) {
                         const dist = getDist(e.touches);
                         const mid = getMid(e.touches);
+                
+                        // scale relative to initial pinch, not previous frame
                         const newScale = Math.min(Math.max(initScale * (dist / initDist), 1), 5);
-            
-                        // zoom toward pinch midpoint relative to center
-                        const cx = window.innerWidth / 2;
-                        const cy = window.innerHeight / 2;
-                        const originX = initMidX - cx;
-                        const originY = initMidY - cy;
-                        const scaleRatio = newScale / initScale;
-            
-                        posX = initPosX + originX * (1 - scaleRatio) + (mid.x - initMidX);
-                        posY = initPosY + originY * (1 - scaleRatio) + (mid.y - initMidY);
-                        scale = newScale; 
+                        const scaleRatio = newScale / scale;
+                
+                        // pan toward current midpoint
+                        posX = posX + (mid.x - window.innerWidth / 2 - posX) * (1 - 1 / scaleRatio) + (mid.x - initMidX) * 0;
+                        posY = posY + (mid.y - window.innerHeight / 2 - posY) * (1 - 1 / scaleRatio);
+                
+                        scale = newScale;
                         applyTransform(false);
-            
+                
                     } else if (e.touches.length === 1 && panning && !pinching) {
                         if (scale > 1) {
                             posX = panOriginX + (e.touches[0].clientX - panStartX);
-                            posY = panOriginY + (e.touches[0].clientY - panStartY); 
+                            posY = panOriginY + (e.touches[0].clientY - panStartY);
                             applyTransform(false);
                         }
                     }
