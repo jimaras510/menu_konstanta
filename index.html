@@ -470,6 +470,18 @@
             background: var(--border);
             margin: 1.8vh 0;
         }
+        
+        #lightbox-overlay {
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+        }
+
+        #lightbox-overlay img {
+            display: block;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            image-rendering: -webkit-optimize-contrast;
+        }
     </style>
 </head>
 
@@ -1959,22 +1971,37 @@
  
            // ── IMAGE LIGHTBOX ──────────────────────────────────────────────────────── 
             (function () {
-                const overlay = $('<div>').css({
-                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)',
-                    zIndex: 9999, display: 'none', alignItems: 'center',
-                    justifyContent: 'center', overflow: 'hidden', touchAction: 'none'
+                
+                const overlay = $('<div>').attr('id', 'lightbox-overlay').css({
+                    position: 'fixed', 
+                    inset: 0, 
+                    background: 'rgba(0,0,0,0.9)',
+                    zIndex: 9999, 
+                    display: 'none', 
+                    alignItems: 'center',
+                    justifyContent: 'center', 
+                    overflow: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
+                    backfaceVisibility: 'hidden',
+                    WebkitTransform: 'translateZ(0)',
                 });
             
                 const container = $('<div>').css({
-                    position: 'relative', display: 'flex',
-                    alignItems: 'center', justifyContent: 'center',
-                    width: '100%', height: '100%'
+                    position: 'relative', 
+                    display: 'flex',
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    width: '100%', 
+                    height: '100%'
                 });
             
                 const img = $('<img>').css({
-                    maxWidth: '95vw', maxHeight: '95vh',
-                    objectFit: 'contain', userSelect: 'none',
-                    pointerEvents: 'none', display: 'block'
+                    maxWidth: '100vw',
+                    maxHeight: '100vh',
+                    objectFit: 'contain',
+                    userSelect: 'none',
+                    transformOrigin: '0 0',
+                    transition: 'none'
                 });
             
                 container.append(img);
