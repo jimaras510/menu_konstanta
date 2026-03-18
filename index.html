@@ -2071,9 +2071,6 @@
                         panning = false;
                         initDist = getDist(e.touches);
                         initScale = scale;
-                        const mid = getMid(e.touches);
-                        initMidX = mid.x;
-                        initMidY = mid.y;
                         initPosX = posX;
                         initPosY = posY;
                     } else if (e.touches.length === 1) {
@@ -2101,17 +2098,12 @@
                 
                     if (e.touches.length === 2 && pinching) {
                         const dist = getDist(e.touches);
-                        const mid = getMid(e.touches);
-                
-                        // scale relative to initial pinch, not previous frame
                         const newScale = Math.min(Math.max(initScale * (dist / initDist), 1), 5);
-                        const scaleRatio = newScale / scale;
-                
-                        // pan toward current midpoint
-                        posX = posX + (mid.x - window.innerWidth / 2 - posX) * (1 - 1 / scaleRatio) + (mid.x - initMidX) * 0;
-                        posY = posY + (mid.y - window.innerHeight / 2 - posY) * (1 - 1 / scaleRatio);
-                
+                        
                         scale = newScale;
+                        posX = initPosX * (newScale / initScale);
+                        posY = initPosY * (newScale / initScale);
+                        
                         applyTransform(false);
                 
                     } else if (e.touches.length === 1 && panning && !pinching) {
