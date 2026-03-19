@@ -1980,7 +1980,19 @@
                 let isPinching = false;
                 let overlay = null;
                 let cloneEl = null;
-            
+               
+                document.getElementById('sheetInner').addEventListener('touchmove', function(e) {
+                    if (e.touches.length > 1) {
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+               
+               document.getElementById('sheetInner').addEventListener('touchstart', function(e) {
+                    if (e.touches.length > 1 && e.target !== imgEl) {
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+               
                 function dist(a, b) {
                     return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
                 }
