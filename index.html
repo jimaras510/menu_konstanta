@@ -1984,9 +1984,36 @@
                     imgEl.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
                 }
             
+                function enterFullscreen() {
+                    const rect = imgEl.getBoundingClientRect();
+                    imgEl.style.position = 'fixed';
+                    imgEl.style.top = rect.top + 'px';
+                    imgEl.style.left = rect.left + 'px';
+                    imgEl.style.width = rect.width + 'px';
+                    imgEl.style.height = rect.height + 'px';
+                    imgEl.style.zIndex = '9999';
+                    imgEl.style.objectFit = 'contain';
+                    imgEl.style.margin = '0';
+                }
+            
+                function exitFullscreen() {
+                    imgEl.style.position = '';
+                    imgEl.style.top = '';
+                    imgEl.style.left = '';
+                    imgEl.style.width = '';
+                    imgEl.style.height = '';
+                    imgEl.style.zIndex = '';
+                    imgEl.style.objectFit = '';
+                    imgEl.style.margin = '';
+                    imgEl.style.transition = 'none';
+                    imgEl.style.transform = '';
+                    scale = 1; tx = 0; ty = 0;
+                }
+            
                 imgEl.addEventListener('touchstart', function (e) {
                     if (e.touches.length === 2) {
                         isPinching = true;
+                        if (scale === 1) enterFullscreen();
                         touch1 = { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
                         touch2 = { clientX: e.touches[1].clientX, clientY: e.touches[1].clientY };
                         pinchStartDist = dist(touch1, touch2);
@@ -2035,8 +2062,10 @@
                         isPinching = false;
                         touch1 = null;
                         touch2 = null;
-                        scale = 1; tx = 0; ty = 0;
-                        setTransform(true);
+                        // animate back then exit fullscreen
+                        imgEl.style.transition = 'transform 0.25s ease';
+                        imgEl.style.transform = 'translate(0,0) scale(1)';
+                        setTimeout(exitFullscreen, 260);
                     } else if (e.touches.length === 1) {
                         isPinching = false;
                         touch2 = null;
