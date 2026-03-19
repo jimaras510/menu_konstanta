@@ -2059,7 +2059,9 @@
 
                 function close() {
                     $overlay.css('display', 'none');
-                    $('body').css('overflow', '');
+                    if (!$('#detailSheet').hasClass('open')) {
+                        $('body').css('overflow', '');
+                    }
                     reset(false);
                 }
 
