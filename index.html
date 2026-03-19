@@ -312,6 +312,7 @@
 
         /* ── DETAIL SHEET ── */
         .sheet-overlay {
+            pointer-events: none;
             position: fixed;
             inset: 0;
             background: rgba(0, 0, 0, .45);
@@ -324,7 +325,8 @@
 
         .sheet-overlay.open {
             display: flex;
-            touch-action: none;
+            pointer-events: all;
+            touch-action: none; 
         }
 
         .sheet {
@@ -1863,6 +1865,7 @@
                 $('#detailSheet').addClass('open');
                 $('body').css('overflow', 'hidden');
                 $('.app').css('overflow', 'hidden');
+                document.getElementById('detailSheet').style.pointerEvents = 'all';
             }
 
           function closeDetail() {
@@ -1873,6 +1876,7 @@
                 $('.app').css('overflow', '');
                 const img = document.getElementById('detailImg');
                 if (img) { img.style.transition = 'none'; img.style.transform = ''; }
+                document.getElementById('detailSheet').style.pointerEvents = '';
             }
 
             function findItem(id) {
@@ -1905,6 +1909,9 @@
             $('#detailSheet').on('click', function (e) {
                 if ($(e.target).is('#detailSheet')) closeDetail();
             });
+            document.getElementById('detailSheet').addEventListener('touchmove', function(e) {
+                e.stopPropagation();
+            }, { passive: true });
             // ─────────────────────────────────────────────────────────────────────────
 
 
