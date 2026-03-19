@@ -1988,8 +1988,13 @@
                     imgEl.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
                 }
             
-                function enterFullscreen() {
+                function enterFullscreen(t1, t2) {
                     const rect = imgEl.getBoundingClientRect();
+                    const midX = (t1.clientX + t2.clientX) / 2;
+                    const midY = (t1.clientY + t2.clientY) / 2;
+                    const originX = ((midX - rect.left) / rect.width) * 100;
+                    const originY = ((midY - rect.top) / rect.height) * 100;
+                    imgEl.style.transformOrigin = `${originX}% ${originY}%`;
             
                     // insert invisible placeholder so sheet layout doesn't collapse
                     placeholder = document.createElement('div');
@@ -2036,9 +2041,9 @@
                 imgEl.addEventListener('touchstart', function (e) {
                     if (e.touches.length === 2) {
                         isPinching = true;
-                        if (scale === 1) enterFullscreen();
                         touch1 = { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
                         touch2 = { clientX: e.touches[1].clientX, clientY: e.touches[1].clientY };
+                        if (scale === 1) enterFullscreen(touch1, touch2);
                         pinchStartDist = dist(touch1, touch2);
                         pinchStartScale = scale;
                         pinchStartTx = tx;
@@ -2061,18 +2066,12 @@
                         const t2 = e.touches[1];
                         const currentDist = dist(t1, t2);
                         scale = Math.min(Math.max(pinchStartScale * (currentDist / pinchStartDist), 1), 5);
-            
-                        const rect = imgEl.getBoundingClientRect();
+             
                         const startMidX = (touch1.clientX + touch2.clientX) / 2;
                         const startMidY = (touch1.clientY + touch2.clientY) / 2;
                         const currentMidX = (t1.clientX + t2.clientX) / 2;
                         const currentMidY = (t1.clientY + t2.clientY) / 2;
-            
-                        // set transform origin to where the pinch started, relative to the fixed image
-                        const originX = ((startMidX - rect.left) / rect.width) * 100;
-                        const originY = ((startMidY - rect.top) / rect.height) * 100;
-                        imgEl.style.transformOrigin = `${originX}% ${originY}%`;
-            
+              
                         tx = pinchStartTx + (currentMidX - startMidX);
                         ty = pinchStartTy + (currentMidY - startMidY);
                         setTransform(false);
