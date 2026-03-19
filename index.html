@@ -1975,47 +1975,45 @@
                 let scale = 1, tx = 0, ty = 0;
                 let pinchStartDist = 0, pinchStartScale = 1;
                 let pinchStartTx = 0, pinchStartTy = 0;
+                let pinchOriginX = 0, pinchOriginY = 0;
                 let touch1 = null, touch2 = null;
                 let isPinching = false;
                 let placeholder = null;
+                let imgRect = null;
             
                 function dist(a, b) {
                     return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
                 }
             
                 function setTransform(animated) {
-                    imgEl.style.transition = animated ? 'transform 0.2s ease' : 'none';
+                    imgEl.style.transition = animated ? 'transform 0.25s ease' : 'none';
                     imgEl.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
                 }
             
                 function enterFullscreen(t1, t2) {
-                    const rect = imgEl.getBoundingClientRect();
-                    const midX = (t1.clientX + t2.clientX) / 2;
-                    const midY = (t1.clientY + t2.clientY) / 2;
-                    const originX = ((midX - rect.left) / rect.width) * 100;
-                    const originY = ((midY - rect.top) / rect.height) * 100;
-                    imgEl.style.transformOrigin = `${originX}% ${originY}%`;
+                    imgRect = imgEl.getBoundingClientRect();
             
-                    // insert invisible placeholder so sheet layout doesn't collapse
                     placeholder = document.createElement('div');
-                    placeholder.style.width = rect.width + 'px';
-                    placeholder.style.height = rect.height + 'px';
+                    placeholder.style.width = imgRect.width + 'px';
+                    placeholder.style.height = imgRect.height + 'px';
                     placeholder.style.flexShrink = '0';
                     imgEl.parentNode.insertBefore(placeholder, imgEl);
             
-                    // disable clipping
                     sheetEl.style.overflow = 'visible';
                     overlayEl.style.overflow = 'visible';
             
-                    // lock image over its exact screen position
                     imgEl.style.position = 'fixed';
-                    imgEl.style.top = rect.top + 'px';
-                    imgEl.style.left = rect.left + 'px';
-                    imgEl.style.width = rect.width + 'px';
-                    imgEl.style.height = rect.height + 'px';
+                    imgEl.style.top = imgRect.top + 'px';
+                    imgEl.style.left = imgRect.left + 'px';
+                    imgEl.style.width = imgRect.width + 'px';
+                    imgEl.style.height = imgRect.height + 'px';
                     imgEl.style.margin = '0';
                     imgEl.style.zIndex = '9999';
-                    imgEl.style.transformOrigin = 'center center';
+                    imgEl.style.transformOrigin = '0 0';
+            
+                    // pinch midpoint relative to image top-left
+                    pinchOriginX = ((t1.clientX + t2.clientX) / 2) - imgRect.left;
+                    pinchOriginY = ((t1.clientY + t2.clientY) / 2) - imgRect.top;
                 }
             
                 function exitFullscreen() {
@@ -2035,6 +2033,7 @@
                         placeholder.parentNode.removeChild(placeholder);
                     }
                     placeholder = null;
+                    imgRect = null;
                     scale = 1; tx = 0; ty = 0;
                 }
             
@@ -2065,16 +2064,17 @@
                         const t1 = e.touches[0];
                         const t2 = e.touches[1];
                         const currentDist = dist(t1, t2);
-                        scale = Math.min(Math.max(pinchStartScale * (currentDist / pinchStartDist), 1), 5);
-             
-                        const startMidX = (touch1.clientX + touch2.clientX) / 2;
-                        const startMidY = (touch1.clientY + touch2.clientY) / 2;
-                        const currentMidX = (t1.clientX + t2.clientX) / 2;
-                        const currentMidY = (t1.clientY + t2.clientY) / 2;
-              
-                        tx = pinchStartTx + (currentMidX - startMidX);
-                        ty = pinchStartTy + (currentMidY - startMidY);
+                        const newScale = Math.min(Math.max(pinchStartScale * (currentDist / pinchStartDist), 1), 5);
+            
+                        // zoom from pinch origin point
+                        const scaleRatio = newScale / pinchStartScale;
+                        tx = pinchOriginX - scaleRatio * (pinchOriginX - pinchStartTx);
+                        ty = pinchOriginY - scaleRatio * (pinchOriginY - pinchStartTy);
+                        scale = newScale;
+            
                         setTransform(false);
+                        e.preventDefault();
+                        e.stopPropagation();
                     } else if (e.touches.length === 1 && scale > 1 && touch1) {
                         tx = pinchStartTx + (e.touches[0].clientX - touch1.clientX);
                         ty = pinchStartTy + (e.touches[0].clientY - touch1.clientY);
