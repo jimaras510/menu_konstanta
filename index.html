@@ -2035,6 +2035,8 @@
                         isPinching = false;
                         touch1 = null;
                         touch2 = null;
+                        scale = 1; tx = 0; ty = 0;
+                        setTransform(true);
                     } else if (e.touches.length === 1) {
                         isPinching = false;
                         touch2 = null;
@@ -2043,6 +2045,7 @@
                         pinchStartTy = ty;
                     }
                 });
+                
             })();
             // ─────────────────────────────────────────────────────────────────────────
 
