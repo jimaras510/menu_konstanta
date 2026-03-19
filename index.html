@@ -309,6 +309,7 @@
 
         .sheet-overlay.open {
             display: flex;
+            overflow: visible;
         }
 
         .sheet {
@@ -1969,11 +1970,14 @@
             // Pinch zoom on detail image in sheet
             (function () {
                 const imgEl = document.getElementById('detailImg');
+                const sheetEl = document.getElementById('sheetInner');
+                const overlayEl = document.getElementById('detailSheet');
                 let scale = 1, tx = 0, ty = 0;
                 let pinchStartDist = 0, pinchStartScale = 1;
                 let pinchStartTx = 0, pinchStartTy = 0;
                 let touch1 = null, touch2 = null;
                 let isPinching = false;
+                let savedRect = null;
             
                 function dist(a, b) {
                     return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
@@ -1985,15 +1989,21 @@
                 }
             
                 function enterFullscreen() {
-                    const rect = imgEl.getBoundingClientRect();
+                    savedRect = imgEl.getBoundingClientRect();
+                    // disable clipping on parent elements
+                    sheetEl.style.overflow = 'visible';
+                    overlayEl.style.overflow = 'visible';
+                    overlayEl.style.backdropFilter = 'none';
+                    // lock image in place on screen using fixed positioning
                     imgEl.style.position = 'fixed';
-                    imgEl.style.top = rect.top + 'px';
-                    imgEl.style.left = rect.left + 'px';
-                    imgEl.style.width = rect.width + 'px';
-                    imgEl.style.height = rect.height + 'px';
+                    imgEl.style.top = savedRect.top + 'px';
+                    imgEl.style.left = savedRect.left + 'px';
+                    imgEl.style.width = savedRect.width + 'px';
+                    imgEl.style.height = savedRect.height + 'px';
                     imgEl.style.zIndex = '9999';
                     imgEl.style.objectFit = 'contain';
                     imgEl.style.margin = '0';
+                    imgEl.style.transformOrigin = 'center center';
                 }
             
                 function exitFullscreen() {
@@ -2005,9 +2015,14 @@
                     imgEl.style.zIndex = '';
                     imgEl.style.objectFit = '';
                     imgEl.style.margin = '';
-                    imgEl.style.transition = 'none';
+                    imgEl.style.transition = '';
                     imgEl.style.transform = '';
+                    imgEl.style.transformOrigin = '';
+                    sheetEl.style.overflow = '';
+                    overlayEl.style.overflow = '';
+                    overlayEl.style.backdropFilter = '';
                     scale = 1; tx = 0; ty = 0;
+                    savedRect = null;
                 }
             
                 imgEl.addEventListener('touchstart', function (e) {
@@ -2062,7 +2077,6 @@
                         isPinching = false;
                         touch1 = null;
                         touch2 = null;
-                        // animate back then exit fullscreen
                         imgEl.style.transition = 'transform 0.25s ease';
                         imgEl.style.transform = 'translate(0,0) scale(1)';
                         setTimeout(exitFullscreen, 260);
@@ -2074,7 +2088,6 @@
                         pinchStartTy = ty;
                     }
                 });
-                
             })();
             // ─────────────────────────────────────────────────────────────────────────
 
