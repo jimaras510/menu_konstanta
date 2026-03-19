@@ -123,11 +123,7 @@
             height: 100%; 
             transition: transform .6s;
         }
-
-        .hero:hover .hero-img {
-            transform: scale(1.03);
-        }
-
+  
         .hero-overlay {
             position: absolute;
             inset: 0;
@@ -382,8 +378,7 @@
         }
 
         /* Detail hero image */
-        .detail-img {
-            cursor: default;
+        .detail-img { 
             transition: transform 0.3s ease;
             width: 100%;
             height: 28vh;
@@ -1785,8 +1780,7 @@
             };
 
             let activeCat = Object.keys(menuData)[0];
-            let searchQuery = '';
-            let currentItem = null;
+            let searchQuery = ''; 
 
             // ── RENDER TABS ──────────────────────────────────────────────────────────
             function renderCatTabs() {
@@ -1833,8 +1827,7 @@
 
             // ── OPEN DETAIL SHEET ────────────────────────────────────────────────────
             function openDetail(id) {
-                const item = findItem(id); if (!item) return;
-                currentItem = item;
+                const item = findItem(id); if (!item) return; 
 
                 $('#detailImg').attr('src', item.img).attr('alt', item.name);
                 $('#detailTitle').text(item.name);
@@ -1953,7 +1946,7 @@
                 document.addEventListener('touchmove', function (e) {
                     if (!dragging) return;
                     if (e.touches.length > 1) { dragging = false; return; }
-                    e.pret();
+                    e.preventDefault();
                     onMove(e.touches[0].clientY);
                 }, { passive: false });
                 
