@@ -472,18 +472,7 @@
             background: var(--border);
             margin: 1.8vh 0;
         }
-        
-        #lightbox-overlay {
-            -webkit-transform: translateZ(0);
-            transform: translateZ(0);
-        }
-
-        #lightbox-overlay img {
-            display: block;
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
-            image-rendering: -webkit-optimize-contrast;
-        }
+         
     </style>
 </head>
 
@@ -1843,11 +1832,14 @@
                 $('body').css('overflow', 'hidden');
             }
 
-            function closeDetail() {
+           function closeDetail() {
                 const $sheet = $('#sheetInner');
                 $sheet.css('transform', '');
                 $('#detailSheet').css('background', '').removeClass('open');
                 $('body').css('overflow', '');
+                // reset pinch zoom on close
+                const img = document.getElementById('detailImg');
+                if (img) { img.style.transition = 'none'; img.style.transform = ''; }
             }
 
             function findItem(id) {
@@ -1973,222 +1965,7 @@
             });
             // ─────────────────────────────────────────────────────────────────────────
  
-          
-            // ── IMAGE LIGHTBOX ────────────────────────────────────────────────────────  
-            (function () {
-                $('body').append(`
-                    <div id="lb-overlay">
-                        <div id="lb-container">
-                            <img id="lb-img">
-                        </div>
-                    </div>
-                `);
-
-                const $overlay = $('#lb-overlay');
-                const $img = $('#lb-img');
-
-                $('<style>').text(`
-                    #lb-overlay {
-                        display: none;
-                        position: fixed;
-                        inset: 0;
-                        background: #000;
-                        z-index: 9999;
-                        overflow: hidden;
-                        touch-action: none;
-                    }
-                    #lb-container {
-                        width: 100%;
-                        height: 100%;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                    }
-                    #lb-img {
-                        max-width: 100vw;
-                        max-height: 100vh;
-                        object-fit: contain;
-                        display: block;
-                        transform-origin: center center;
-                        will-change: transform;
-                        pointer-events: none;
-                        -webkit-backface-visibility: hidden;
-                        backface-visibility: hidden;
-                    }
-                `).appendTo('head');
-
-                let scale = 1;
-                let tx = 0, ty = 0;
-                let startTx = 0, startTy = 0;
-
-                // pinch
-                let touch1 = null, touch2 = null;
-                let pinchStartDist = 0, pinchStartScale = 1;
-                let pinchStartTx = 0, pinchStartTy = 0;
-
-                // tap
-                let tapTimeout = null;
-                let lastTap = 0;
-                let touchMoved = false;
-                let touchStartX = 0, touchStartY = 0;
-
-                function setTransform(animated) {
-                    $img.css({
-                        transition: animated ? 'transform 0.2s ease' : 'none',
-                        transform: `translate(${tx}px, ${ty}px) scale(${scale})`
-                    });
-                }
-
-                function reset(animated) {
-                    scale = 1; tx = 0; ty = 0;
-                    setTransform(animated);
-                }
-
-                function dist(a, b) {
-                    return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-                }
-  
-                // close on ESC
-                $(document).on('keydown', function (e) {
-                    if (e.key === 'Escape') close();
-                });
-
-                function close() {
-                    $overlay.css('display', 'none');
-                    if (!$('#detailSheet').hasClass('open')) {
-                        $('body').css('overflow', '');
-                    }
-                    reset(false);
-                }
-
-                const el = $overlay[0];
-
-                el.addEventListener('touchstart', function (e) {
-                    e.preventDefault();
-                    const touches = e.touches;
-
-                    if (touches.length === 1) {
-                        touch1 = { clientX: touches[0].clientX, clientY: touches[0].clientY };
-                        touch2 = null;
-                        startTx = tx;
-                        startTy = ty;
-                        touchStartX = touches[0].clientX;
-                        touchStartY = touches[0].clientY;
-                        touchMoved = false;
-
-                        // double tap
-                        const now = Date.now();
-                        if (now - lastTap < 280) {
-                            if (scale > 1) reset(true);
-                            else {
-                                scale = 2.5;
-                                tx = 0; ty = 0;
-                                setTransform(true);
-                            }
-                            lastTap = 0;
-                        } else {
-                            lastTap = now;
-                        }
-
-                    } else if (touches.length === 2) {
-                        touch1 = { clientX: touches[0].clientX, clientY: touches[0].clientY };
-                        touch2 = { clientX: touches[1].clientX, clientY: touches[1].clientY };
-                        pinchStartDist = dist(touch1, touch2);
-                        pinchStartScale = scale;
-                        pinchStartTx = tx;
-                        pinchStartTy = ty;
-                    }
-                }, { passive: false });
-
-                el.addEventListener('touchmove', function (e) {
-                    e.preventDefault();
-                    const touches = e.touches;
-
-                    if (touches.length === 2) {
-                        // pinch zoom
-                        const t1 = touches[0];
-                        const t2 = touches[1];
-                        const currentDist = dist(t1, t2);
-                        const newScale = Math.min(Math.max(pinchStartScale * (currentDist / pinchStartDist), 1), 5);
-
-                        // pan with pinch midpoint delta
-                        const startMidX = (touch1.clientX + touch2.clientX) / 2;
-                        const startMidY = (touch1.clientY + touch2.clientY) / 2;
-                        const currentMidX = (t1.clientX + t2.clientX) / 2;
-                        const currentMidY = (t1.clientY + t2.clientY) / 2;
-
-                        scale = newScale;
-                        tx = pinchStartTx + (currentMidX - startMidX);
-                        ty = pinchStartTy + (currentMidY - startMidY);
-                        setTransform(false);
-
-                    } else if (touches.length === 1 && touch2 === null) {
-                        // pan
-                        const dx = touches[0].clientX - touchStartX;
-                        const dy = touches[0].clientY - touchStartY;
-                        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) touchMoved = true;
-
-                        if (scale > 1) {
-                            tx = startTx + dx;
-                            ty = startTy + dy;
-                            setTransform(false);
-                        }
-                    }
-                }, { passive: false });
-
-                el.addEventListener('touchend', function (e) {
-                    e.preventDefault();
-                    const remaining = e.touches.length;
-
-                    if (remaining === 0) {
-                        // close on tap (no move, not zoomed)
-                        if (!touchMoved && scale <= 1) {
-                            close();
-                            return;
-                        }
-                        touch1 = null;
-                        touch2 = null;
-
-                    } else if (remaining === 1) {
-                        // finger lifted during pinch — reset pan anchor
-                        touch2 = null;
-                        touchStartX = e.touches[0].clientX;
-                        touchStartY = e.touches[0].clientY;
-                        startTx = tx;
-                        startTy = ty;
-                    }
-                }, { passive: false });
-
-                // desktop mouse drag
-                let dragging = false, mx = 0, my = 0;
-
-                el.addEventListener('mousedown', function (e) {
-                    dragging = true;
-                    mx = e.clientX; my = e.clientY;
-                    startTx = tx; startTy = ty;
-                });
-                el.addEventListener('mousemove', function (e) {
-                    if (!dragging || scale <= 1) return;
-                    tx = startTx + (e.clientX - mx);
-                    ty = startTy + (e.clientY - my);
-                    setTransform(false);
-                });
-                el.addEventListener('mouseup', function (e) {
-                    const moved = Math.abs(e.clientX - mx) > 5 || Math.abs(e.clientY - my) > 5;
-                    dragging = false;
-                    if (!moved && scale <= 1) close();
-                });
-
-                // desktop scroll zoom
-                el.addEventListener('wheel', function (e) {
-                    e.preventDefault();
-                    const delta = e.deltaY < 0 ? 1.15 : 0.87;
-                    scale = Math.min(Math.max(scale * delta, 1), 5);
-                    if (scale === 1) { tx = 0; ty = 0; }
-                    setTransform(false);
-                }, { passive: false });
-            })();
-
+            
             // Pinch zoom on detail image in sheet
             (function () {
                 const sheetEl = document.getElementById('sheetInner');
@@ -2263,9 +2040,8 @@
                         pinchStartTx = tx;
                         pinchStartTy = ty;
                     }
-                    // double-tap to reset
-                    if (scale < 1.05) reset(true);
                 });
+                
             })();
             // ─────────────────────────────────────────────────────────────────────────
 
