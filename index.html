@@ -1968,7 +1968,7 @@
  
             
             // Pinch zoom on detail image in sheet
-            (function () {
+           (function () {
                 const imgEl = document.getElementById('detailImg');
                 let scale = 1, tx = 0, ty = 0;
                 let pinchStartDist = 0, pinchStartScale = 1;
@@ -1991,7 +1991,6 @@
                 function enterFullscreen(t1, t2) {
                     const rect = imgEl.getBoundingClientRect();
             
-                    // create dark overlay
                     overlay = document.createElement('div');
                     overlay.style.cssText = `
                         position: fixed;
@@ -2001,7 +2000,6 @@
                     `;
                     document.body.appendChild(overlay);
             
-                    // create clone positioned exactly over the original image
                     cloneEl = document.createElement('img');
                     cloneEl.src = imgEl.src;
                     cloneEl.style.cssText = `
@@ -2015,10 +2013,10 @@
                         margin: 0;
                         transform-origin: 0 0;
                         touch-action: none;
+                        pointer-events: none;
                     `;
                     document.body.appendChild(cloneEl);
             
-                    // pinch origin relative to clone top-left
                     pinchOriginX = ((t1.clientX + t2.clientX) / 2) - rect.left;
                     pinchOriginY = ((t1.clientY + t2.clientY) / 2) - rect.top;
                 }
@@ -2027,27 +2025,21 @@
                     if (overlay) { document.body.removeChild(overlay); overlay = null; }
                     if (cloneEl) { document.body.removeChild(cloneEl); cloneEl = null; }
                     scale = 1; tx = 0; ty = 0;
+                    touch1 = null; touch2 = null;
+                    isPinching = false;
                 }
-                
-                document.addEventListener('touchstart', function(e) {
-                    if (!cloneEl || e.touches.length !== 1 || scale <= 1) return;
-                    touch1 = { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
-                    touch2 = null;
-                    pinchStartTx = tx;
-                    pinchStartTy = ty;
-                    e.preventDefault();
-                }, { passive: false });
             
-                document.addEventListener('touchmove', function(e) {
-                    if (!cloneEl || e.touches.length !== 1 || scale <= 1 || !touch1) return;
-                    tx = pinchStartTx + (e.touches[0].clientX - touch1.clientX);
-                    ty = pinchStartTy + (e.touches[0].clientY - touch1.clientY);
-                    setTransform(false);
-                    e.preventDefault();
-                }, { passive: false });
-                
-                imgEl.addEventListener('touchstart', function (e) {
+                // ALL touch handling on document so it works regardless of what's on top
+                document.addEventListener('touchstart', function(e) {
+                    // only activate when sheet is open
+                    if (!document.getElementById('detailSheet').classList.contains('open')) return;
+            
                     if (e.touches.length === 2) {
+                        // check at least one finger is on the image or clone
+                        const target = e.target;
+                        const onImage = target === imgEl || target === cloneEl || target === overlay;
+                        if (!onImage && !cloneEl) return;
+            
                         isPinching = true;
                         touch1 = { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
                         touch2 = { clientX: e.touches[1].clientX, clientY: e.touches[1].clientY };
@@ -2058,7 +2050,8 @@
                         pinchStartTy = ty;
                         e.preventDefault();
                         e.stopPropagation();
-                    } else if (e.touches.length === 1 && cloneEl && scale > 1) {
+            
+                    } else if (e.touches.length === 1 && cloneEl) {
                         touch1 = { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
                         touch2 = null;
                         pinchStartTx = tx;
@@ -2068,23 +2061,23 @@
                     }
                 }, { passive: false });
             
-                imgEl.addEventListener('touchmove', function (e) {
+                document.addEventListener('touchmove', function(e) {
                     if (!cloneEl) return;
+            
                     if (e.touches.length === 2 && isPinching) {
                         const t1 = e.touches[0];
                         const t2 = e.touches[1];
                         const currentDist = dist(t1, t2);
                         const newScale = Math.min(Math.max(pinchStartScale * (currentDist / pinchStartDist), 1), 5);
-            
                         const scaleRatio = newScale / pinchStartScale;
-                        tx = pinchOriginX * (1 - scaleRatio) + pinchStartTx * scaleRatio / pinchStartScale * pinchStartScale;
-                        ty = pinchOriginY * (1 - scaleRatio) + pinchStartTy * scaleRatio / pinchStartScale * pinchStartScale;
+                        tx = pinchOriginX * (1 - scaleRatio) + pinchStartTx;
+                        ty = pinchOriginY * (1 - scaleRatio) + pinchStartTy;
                         scale = newScale;
-            
                         setTransform(false);
                         e.preventDefault();
                         e.stopPropagation();
-                    } else if (e.touches.length === 1 && cloneEl && scale > 1 && touch1) {
+            
+                    } else if (e.touches.length === 1 && !isPinching && touch1) {
                         tx = pinchStartTx + (e.touches[0].clientX - touch1.clientX);
                         ty = pinchStartTy + (e.touches[0].clientY - touch1.clientY);
                         setTransform(false);
@@ -2093,18 +2086,19 @@
                     }
                 }, { passive: false });
             
-                imgEl.addEventListener('touchend', function (e) {
+                document.addEventListener('touchend', function(e) {
+                    if (!cloneEl) return;
+            
                     if (e.touches.length === 0) {
                         isPinching = false;
                         touch1 = null;
                         touch2 = null;
-                        if (cloneEl) {
-                            cloneEl.style.transition = 'transform 0.25s ease';
-                            cloneEl.style.transform = 'translate(0,0) scale(1)';
-                            overlay.style.transition = 'opacity 0.25s ease';
-                            overlay.style.opacity = '0';
-                            setTimeout(exitFullscreen, 260);
-                        }
+                        cloneEl.style.transition = 'transform 0.25s ease';
+                        cloneEl.style.transform = 'translate(0,0) scale(1)';
+                        overlay.style.transition = 'opacity 0.25s ease';
+                        overlay.style.opacity = '0';
+                        setTimeout(exitFullscreen, 260);
+            
                     } else if (e.touches.length === 1) {
                         isPinching = false;
                         touch2 = null;
@@ -2112,7 +2106,8 @@
                         pinchStartTx = tx;
                         pinchStartTy = ty;
                     }
-                });
+                }, { passive: false });
+            
             })();
             // ─────────────────────────────────────────────────────────────────────────
 
