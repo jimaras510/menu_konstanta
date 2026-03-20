@@ -563,35 +563,28 @@
 
     <script>
         $(function () { 
-               // Prevent pinch zoom on the whole document except the detail image
-            document.addEventListener('touchstart', function(e) {
-                if (e.touches.length > 1) {
-                    // Allow only if target is the detail image
-                    if (!e.target.closest('#detailImg')) {
-                        e.preventDefault();
-                    }
+            // Block pinch zoom everywhere except #detailImg — capture phase beats stopPropagation
+            window.addEventListener('touchstart', function(e) {
+                if (e.touches.length > 1 && !e.target.closest('#detailImg')) {
+                    e.preventDefault();
                 }
-            }, { passive: false });
+            }, { passive: false, capture: true });
             
-            document.addEventListener('touchmove', function(e) {
-                if (e.touches.length > 1) {
-                    if (!e.target.closest('#detailImg')) {
-                        e.preventDefault();
-                    }
+            window.addEventListener('touchmove', function(e) {
+                if (e.touches.length > 1 && !e.target.closest('#detailImg')) {
+                    e.preventDefault();
                 }
-            }, { passive: false });
+            }, { passive: false, capture: true });
             
-            // Prevent double-tap zoom everywhere
+            // Block double-tap zoom everywhere except #detailImg
             let lastTap = 0;
-            document.addEventListener('touchend', function(e) {
+            window.addEventListener('touchend', function(e) {
+                if (e.target.closest('#detailImg')) return;
                 const now = Date.now();
-                if (now - lastTap < 300) {
-                    if (!e.target.closest('#detailImg')) {
-                        e.preventDefault();
-                    }
-                }
+                if (now - lastTap < 300) e.preventDefault();
                 lastTap = now;
-            }, { passive: false });
+            }, { passive: false, capture: true });
+                         
                         
             const menuData = {
                 'ΚΟΥΡΟΥ': [
