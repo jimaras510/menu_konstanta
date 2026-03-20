@@ -2009,7 +2009,7 @@
                 }
             
                 function isOnImage(x, y) {
-                    if (!imgRect) return false;
+                    imgRect = imgEl.getBoundingClientRect();
                     return x >= imgRect.left && x <= imgRect.right && y >= imgRect.top && y <= imgRect.bottom;
                 }
             
