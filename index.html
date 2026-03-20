@@ -1985,13 +1985,12 @@
             // ─────────────────────────────────────────────────────────────────────────
  
             
-            // Pinch zoom on detail image in sheet
+            // Pinch zoom on detail image in sheet 
             (function () {
                 const imgEl = document.getElementById('detailImg');
                 let overlay = null;
                 let cloneEl = null;
                 let isPinching = false;
-                sharedIsPinching = false;
             
                 let startDist = 0;
                 let startScale = 1;
@@ -1999,77 +1998,62 @@
                 let startMidX = 0, startMidY = 0;
                 let startTx = 0, startTy = 0;
                 let currentTx = 0, currentTy = 0;
+                let imgRect = null;
             
-                function getDist(e) {
-                    return Math.hypot(
-                        e.touches[0].clientX - e.touches[1].clientX,
-                        e.touches[0].clientY - e.touches[1].clientY
-                    );
+                function getDist(t1, t2) {
+                    return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
                 }
             
-                function getMid(e) {
-                    return {
-                        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-                        y: (e.touches[0].clientY + e.touches[1].clientY) / 2
-                    };
+                function getMid(t1, t2) {
+                    return { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
+                }
+            
+                function isOnImage(x, y) {
+                    if (!imgRect) return false;
+                    return x >= imgRect.left && x <= imgRect.right && y >= imgRect.top && y <= imgRect.bottom;
                 }
             
                 function createOverlayAndClone() {
-                    const rect = imgEl.getBoundingClientRect();
+                    imgRect = imgEl.getBoundingClientRect();
             
                     overlay = document.createElement('div');
-                    overlay.style.cssText = `
-                        position: fixed;
-                        inset: 0;
-                        background: rgba(0,0,0,0.85);
-                        z-index: 9998;
-                        touch-action: none;
-                    `;
+                    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9998;';
                     document.body.appendChild(overlay);
             
                     cloneEl = document.createElement('img');
                     cloneEl.src = imgEl.src;
                     cloneEl.style.cssText = `
-                        position: fixed;
-                        top: ${rect.top}px;
-                        left: ${rect.left}px;
-                        width: ${rect.width}px;
-                        height: ${rect.height}px;
-                        object-fit: cover;
-                        z-index: 9999;
-                        transform-origin: 0 0;
-                        touch-action: none;
+                        position:fixed;
+                        top:${imgRect.top}px;
+                        left:${imgRect.left}px;
+                        width:${imgRect.width}px;
+                        height:${imgRect.height}px;
+                        object-fit:cover;
+                        z-index:9999;
+                        transform-origin:0 0;
+                        transform:translate(0,0) scale(1);
+                        transition:none;
                     `;
                     document.body.appendChild(cloneEl);
                     document.getElementById('sheetInner').style.pointerEvents = 'none';
                 }
             
-                function applyTransform(animated) {
+                function applyTransform() {
                     if (!cloneEl) return;
-                    cloneEl.style.transition = animated ? 'transform 0.25s ease' : 'none';
-                    cloneEl.style.transform = `translate(${currentTx}px, ${currentTy}px) scale(${currentScale})`;
+                    cloneEl.style.transition = 'none';
+                    cloneEl.style.transform = `translate(${currentTx}px,${currentTy}px) scale(${currentScale})`;
                 }
             
-                function cleanup(animated) {
-                    if (!cloneEl) return;
-                    if (animated) {
+                function cleanup() {
+                    if (cloneEl) {
                         cloneEl.style.transition = 'transform 0.25s ease';
                         cloneEl.style.transform = 'translate(0,0) scale(1)';
-                        if (overlay) {
-                            overlay.style.transition = 'opacity 0.25s ease';
-                            overlay.style.opacity = '0';
-                        }
-                        setTimeout(function() {
-                            if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
-                            if (cloneEl && cloneEl.parentNode) cloneEl.parentNode.removeChild(cloneEl);
-                            overlay = null;
-                            cloneEl = null;
-                            currentScale = 1;
-                            currentTx = 0;
-                            currentTy = 0;
-                            document.getElementById('sheetInner').style.pointerEvents = '';
-                        }, 260);
-                    } else {
+                    }
+                    if (overlay) {
+                        overlay.style.transition = 'opacity 0.25s ease';
+                        overlay.style.opacity = '0';
+                    }
+                    setTimeout(function() {
                         if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
                         if (cloneEl && cloneEl.parentNode) cloneEl.parentNode.removeChild(cloneEl);
                         overlay = null;
@@ -2077,74 +2061,84 @@
                         currentScale = 1;
                         currentTx = 0;
                         currentTy = 0;
+                        imgRect = null;
+                        isPinching = false;
+                        sharedIsPinching = false;
                         document.getElementById('sheetInner').style.pointerEvents = '';
-                    }
-                    isPinching = false;
-                    sharedIsPinching = false;
+                    }, 260);
                 }
             
-                // Use document-level listener so it works even if imgEl touch is intercepted
+                // Intercept ALL touches on document at capture phase
                 document.addEventListener('touchstart', function(e) {
                     if (e.touches.length !== 2) return;
-                    
-                    // Check if either finger is on the image or overlay/clone
+            
                     const t1 = e.touches[0];
                     const t2 = e.touches[1];
-                    const el1 = document.elementFromPoint(t1.clientX, t1.clientY);
-                    const el2 = document.elementFromPoint(t2.clientX, t2.clientY);
-                    
-                    const onImage = el1 === imgEl || el2 === imgEl || 
-                                    el1 === cloneEl || el2 === cloneEl ||
-                                    (overlay && (el1 === overlay || el2 === overlay));
             
-                    if (!onImage && !cloneEl) return;
+                    // Only activate if both fingers start on the image area
+                    const finger1OnImg = isOnImage(t1.clientX, t1.clientY) || cloneEl;
+                    const finger2OnImg = isOnImage(t2.clientX, t2.clientY) || cloneEl;
+            
+                    if (!finger1OnImg || !finger2OnImg) return;
+            
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
             
                     isPinching = true;
                     sharedIsPinching = true;
             
                     if (!cloneEl) createOverlayAndClone();
             
-                    startDist = getDist(e);
+                    startDist = getDist(t1, t2);
                     startScale = currentScale;
                     startTx = currentTx;
                     startTy = currentTy;
-                    const mid = getMid(e);
+                    const mid = getMid(t1, t2);
                     startMidX = mid.x;
                     startMidY = mid.y;
             
-                    e.preventDefault();
-                    e.stopPropagation();
-                }, { passive: false });
+                }, { passive: false, capture: true });
             
                 document.addEventListener('touchmove', function(e) {
-                    if (!isPinching || !cloneEl) return;
-                    if (e.touches.length < 2) return;
+                    if (!isPinching || !cloneEl || e.touches.length < 2) return;
             
                     e.preventDefault();
-                    e.stopPropagation();
+                    e.stopImmediatePropagation();
             
-                    const newDist = getDist(e);
-                    const mid = getMid(e);
-                    const scaleRatio = newDist / startDist;
-                    
-                    currentScale = Math.min(Math.max(startScale * scaleRatio, 1), 5);
+                    const t1 = e.touches[0];
+                    const t2 = e.touches[1];
+                    const newDist = getDist(t1, t2);
+                    const mid = getMid(t1, t2);
+            
+                    currentScale = Math.min(Math.max(startScale * (newDist / startDist), 1), 5);
                     currentTx = startTx + (mid.x - startMidX);
                     currentTy = startTy + (mid.y - startMidY);
             
-                    applyTransform(false);
-                }, { passive: false });
+                    applyTransform();
+            
+                }, { passive: false, capture: true });
             
                 document.addEventListener('touchend', function(e) {
                     if (!isPinching || !cloneEl) return;
             
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+            
                     if (e.touches.length === 0) {
-                        cleanup(true);
+                        // all fingers lifted — clean up
+                        cleanup();
                     } else if (e.touches.length === 1) {
-                        // one finger lifted, reset for possible re-pinch
+                        // one finger still down — wait for full release
                         isPinching = false;
                         sharedIsPinching = false;
                     }
-                }, { passive: false });
+            
+                }, { passive: false, capture: true });
+            
+                document.addEventListener('touchcancel', function(e) {
+                    if (!cloneEl) return;
+                    cleanup();
+                }, { passive: false, capture: true });
             
             })();
             // ─────────────────────────────────────────────────────────────────────────
