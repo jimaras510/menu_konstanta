@@ -2015,11 +2015,11 @@
             
                 function createOverlayAndClone() {
                     imgRect = imgEl.getBoundingClientRect();
-            
+                
                     overlay = document.createElement('div');
                     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9998;';
                     document.body.appendChild(overlay);
-            
+                
                     cloneEl = document.createElement('img');
                     cloneEl.src = imgEl.src;
                     cloneEl.style.cssText = `
@@ -2030,7 +2030,7 @@
                         height:${imgRect.height}px;
                         object-fit:cover;
                         z-index:9999;
-                        transform-origin:0 0;
+                        transform-origin: center center;
                         transform:translate(0,0) scale(1);
                         transition:none;
                     `;
@@ -2041,8 +2041,8 @@
                 function applyTransform() {
                     if (!cloneEl) return;
                     cloneEl.style.transition = 'none';
-                    cloneEl.style.transform = `translate(${currentTx}px,${currentTy}px) scale(${currentScale})`;
-                }
+                    cloneEl.style.transform = `scale(${currentScale}) translate(${currentTx}px,${currentTy}px)`;
+                } 
             
                 function cleanup() {
                     if (cloneEl) {
@@ -2111,30 +2111,31 @@
                     const mid = getMid(t1, t2);
             
                     currentScale = Math.min(Math.max(startScale * (newDist / startDist), 1), 5);
-                    currentTx = startTx + (mid.x - startMidX);
-                    currentTy = startTy + (mid.y - startMidY);
+                    currentTx = startTx + (mid.x - startMidX) / currentScale;
+                    currentTy = startTy + (mid.y - startMidY) / currentScale;
             
                     applyTransform();
             
                 }, { passive: false, capture: true });
             
                 document.addEventListener('touchend', function(e) {
-                    if (!isPinching || !cloneEl) return;
-            
+                    if (!cloneEl) return;
+                
                     e.preventDefault();
                     e.stopImmediatePropagation();
-            
+                
                     if (e.touches.length === 0) {
-                        // all fingers lifted — clean up
                         cleanup();
                     } else if (e.touches.length === 1) {
-                        // one finger still down — wait for full release
                         isPinching = false;
                         sharedIsPinching = false;
+                        startScale = currentScale;
+                        startTx = currentTx;
+                        startTy = currentTy;
                     }
-            
+                
                 }, { passive: false, capture: true });
-            
+                
                 document.addEventListener('touchcancel', function(e) {
                     if (!cloneEl) return;
                     cleanup();
