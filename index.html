@@ -1893,6 +1893,7 @@
 
 
             // ── SWIPE TO CLOSE ────────────────────────────────────────────────────────
+            let sharedIsPinching = false;
             (function () {
                 const $sheet = $('#sheetInner');
                 const $handle = $('.sheet-handle, .detail-img');
@@ -1940,7 +1941,8 @@
                 });
                 
                 document.addEventListener('touchmove', function (e) {
-                    if (!dragging || e.touches.length > 1) return; // yield to pinch zoom
+                    if (!dragging || sharedIsPinching) return;
+                    if (e.touches.length > 1) { dragging = false; return; }
                     e.preventDefault();
                     onMove(e.touches[0].clientY);
                 }, { passive: false });
@@ -1991,7 +1993,8 @@
                 let pinchStartTx = 0, pinchStartTy = 0;
                 let pinchOriginX = 0, pinchOriginY = 0;
                 let touch1 = null, touch2 = null;
-                let isPinching = false;
+                let isPinching = false; 
+                sharedIsPinching = false;
                 let overlay = null;
                 let cloneEl = null;
                  
@@ -2044,12 +2047,14 @@
                     scale = 1; tx = 0; ty = 0;
                     touch1 = null; touch2 = null;
                     isPinching = false;
+                    sharedIsPinching = false;
                     document.getElementById('sheetInner').style.pointerEvents = '';
                 }
                
                 imgEl.addEventListener('touchstart', function(e) {
                     if (e.touches.length === 2) {
                         isPinching = true;
+                        sharedIsPinching = true;
                         touch1 = { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
                         touch2 = { clientX: e.touches[1].clientX, clientY: e.touches[1].clientY };
                         if (!cloneEl) enterFullscreen(touch1, touch2);
