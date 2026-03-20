@@ -1885,20 +1885,18 @@
             $('#detailClose').on('click', closeDetail);
             $('#detailSheet').on('click', function (e) {
                 if ($(e.target).is('#detailSheet')) closeDetail();
-            });
-            document.getElementById('detailSheet').addEventListener('touchmove', function(e) {
-                e.stopPropagation();
-            }, { passive: true });
+            }); 
             // ─────────────────────────────────────────────────────────────────────────
 
 
             // ── SWIPE TO CLOSE ────────────────────────────────────────────────────────
             let sharedIsPinching = false;
+            let dragging = false;
             (function () {
                 const $sheet = $('#sheetInner');
                 const $handle = $('.sheet-handle, .detail-img');
-                const DISMISS = 120; // px down to trigger close
-                let startY = 0, currentY = 0, dragging = false;
+                const DISMISS = 120; // px down to trigger close 
+                let startY = 0, currentY = 0;
                 
                 function onStart(y, touchCount) {
                     if (touchCount > 1) return;
@@ -1937,6 +1935,7 @@
                 $handle.on('touchstart', function (e) {
                     if (e.originalEvent.touches.length > 1) return;
                     if (sharedIsPinching) return;
+                    e.preventDefault();
                     onStart(e.originalEvent.touches[0].clientY, 1);
                 });
                 
