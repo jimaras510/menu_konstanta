@@ -2035,6 +2035,7 @@
                     `;
                     document.body.appendChild(cloneEl);
                     document.getElementById('sheetInner').style.pointerEvents = 'none';
+                    imgEl.style.visibility = 'hidden'; 
                 }
             
                 function applyTransform() {
@@ -2066,7 +2067,8 @@
                         $('#sheetInner').css('transform', '');
                         dragging = false;
                         document.getElementById('sheetInner').style.pointerEvents = '';
-                    }, 100);
+                        imgEl.style.visibility = '';
+                    }, 260);
                 }
             
                 // Intercept ALL touches on document at capture phase
