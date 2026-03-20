@@ -2102,7 +2102,8 @@
                 }, { passive: false, capture: true });
             
                 document.addEventListener('touchmove', function(e) {
-                    if (!isPinching || !cloneEl || e.touches.length < 2) return;
+                    if (!isPinching || !cloneEl) return;
+                    if (e.touches.length < 2) return;
             
                     e.preventDefault();
                     e.stopImmediatePropagation();
@@ -2122,9 +2123,10 @@
             
                 document.addEventListener('touchend', function(e) {
                     if (!cloneEl) return;
+                    if (e.touches.length > 0 && !isPinching) return;
                 
                     e.preventDefault();
-                    e.stopImmediatePropagation();
+                    e.stopImmediatePropagation(); 
                 
                     if (e.touches.length === 0) {
                         cleanup();
@@ -2139,7 +2141,7 @@
                 }, { passive: false, capture: true });
                 
                 document.addEventListener('touchcancel', function(e) {
-                    if (!cloneEl) return;
+                    if (!cloneEl && !isPinching) return;
                     cleanup();
                 }, { passive: false, capture: true });
             
