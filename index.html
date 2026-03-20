@@ -317,6 +317,7 @@
         }
 
         .sheet-overlay.open {
+            touch-action: none;
             display: flex;
             pointer-events: all;
             touch-action: none; 
@@ -1834,18 +1835,25 @@
                 const $wide = $('#wideBoxes').empty();
                 $wide.append(`<div class="info-box-wide"><strong>Ψήσιμο:</strong>&nbsp; ${item.baking}</div>`);
                 $wide.append(`<div class="info-box-wide"><strong>Προετοιμασία:</strong>&nbsp; ${item.preparation}</div>`);
-                
+                            
                 $('#detailSheet').addClass('open');
-                $('body').css('overflow', 'hidden');
-                $('.app').css('overflow', 'hidden');
-                document.getElementById('detailSheet').style.pointerEvents = 'all';
+                
+                // Lock background scroll
+                const scrollY = $(window).scrollTop();
+                $('body').css({ 'overflow': 'hidden', 'position': 'fixed', 'top': -scrollY + 'px', 'width': '100%' });
+                $('body').data('scrollY', scrollY);
             }
 
-          function closeDetail() {
+            function closeDetail() {
                 const $sheet = $('#sheetInner');
                 $sheet.css('transform', '');
                 $('#detailSheet').css('background', '').removeClass('open');
-                $('body').css('overflow', '');
+                
+                // Restore background scroll
+                const scrollY = $('body').data('scrollY') || 0;
+                $('body').css({ 'overflow': '', 'position': '', 'top': '', 'width': '' });
+                $(window).scrollTop(scrollY);
+                
                 $('.app').css('overflow', '');
                 const img = document.getElementById('detailImg');
                 if (img) { img.style.transition = 'none'; img.style.transform = ''; }
@@ -1930,13 +1938,13 @@
 
                 // Touch
                 $handle.on('touchstart', function (e) {
+                    if (e.originalEvent.touches.length > 1) return; // let pinch zoom through
                     e.stopPropagation();
-                    onStart(e.originalEvent.touches[0].clientY, e.originalEvent.touches.length);
+                    onStart(e.originalEvent.touches[0].clientY, 1);
                 });
                 
                 document.addEventListener('touchmove', function (e) {
-                    if (!dragging) return;
-                    if (e.touches.length > 1) { dragging = false; return; }
+                    if (!dragging || e.touches.length > 1) return; // yield to pinch zoom
                     e.preventDefault();
                     onMove(e.touches[0].clientY);
                 }, { passive: false });
